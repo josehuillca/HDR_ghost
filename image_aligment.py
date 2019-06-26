@@ -20,7 +20,7 @@ def feature_detection(image: np.ndarray, algorithm: str = 'SIFT') -> Tuple[Any, 
     image_cp = cv2.cvtColor(image_cp, cv2.COLOR_BGR2GRAY)
     if algorithm == 'SIFT':
         alg = cv2.xfeatures2d.SIFT_create()
-    if algorithm == 'SURF':
+    elif algorithm == 'SURF':
         alg = cv2.xfeatures2d.SURF_create()
     else:
         alg = cv2.cv2.ORB_create(MAX_FEATURES)
@@ -28,7 +28,7 @@ def feature_detection(image: np.ndarray, algorithm: str = 'SIFT') -> Tuple[Any, 
     return keypoints, descriptors
 
 
-def alignImages(source: np.ndarray, reference: np.ndarray, algorithm: str = 'SIFT'):
+def alignImages(source: np.ndarray, reference: np.ndarray, algorithm: str = 'ORB'):
 
     keypoints1, descriptors1 = feature_detection(source, algorithm)
     keypoints2, descriptors2 = feature_detection(reference, algorithm)

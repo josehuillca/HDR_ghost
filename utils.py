@@ -1,7 +1,12 @@
 import cv2
 import numpy as np
+import matplotlib.pyplot as plt
+from skimage import exposure
+from skimage.transform import pyramid_gaussian
+from typing import Tuple, List
 
-def display_img(img: np.ndarray, title: str, resize: np.ndarray = (600, 600)) -> None:
+
+def display_img(img: np.ndarray, title: str, resize: Tuple[int, int] = (600, 600)) -> None:
     """ Display image window
     :param img: Input image
     :param title: Title image
@@ -39,3 +44,16 @@ def display_cumulative_histograms(source: np.ndarray, reference: np.ndarray, mat
     plt.tight_layout()
     plt.show()
 
+
+def pyramid_g(img: np.ndarray, dowsample: int = 2, downscale: int = 2) -> List:
+    gaussian_pyramid = []
+    # METHOD #2: Resizing + Gaussian smoothing.
+    for (i, resized) in enumerate(pyramid_gaussian(img, downscale=downscale, multichannel=True)):
+        # if the image is too small, break from the loop
+        if resized.shape[0] < 30 or resized.shape[1] < 30:
+            break
+        if i > dowsample:
+            break
+        # show the resized image
+        gaussian_pyramid.append(resized)
+    return gaussian_pyramid
