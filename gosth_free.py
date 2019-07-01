@@ -2,11 +2,11 @@ import cv2
 import math
 import numpy as np
 from skimage.transform import match_histograms
-from utils import display_img, display_cumulative_histograms, pyramid_g
+from utils import display_img, display_cumulative_histograms, pyramid_g, display_histogram
 from image_aligment import alignImages
 
 
-def execute(imgb_name: np.ndarray, imgd_name: np.ndarray) -> None:
+def execute(imgb_name: str, imgd_name: str) -> None:
     """
     :param imgb_name:
     :param imgd_name:
@@ -76,4 +76,12 @@ def execute(imgb_name: np.ndarray, imgd_name: np.ndarray) -> None:
             I_diff_R[j, i] = 1./(1. + k1*math.exp(-k2*(I_diff[j, i][2] - 0.5)))
 
     numpy_bgr = np.hstack((I_diff_B, I_diff_G, I_diff_R))
-    display_img(numpy_bgr, title="(I_diff_B, I_diff_G, I_diff_R)", resize=(300 * 3, 300))
+    display_img(numpy_bgr, title="logistic function: (I_diff_B, I_diff_G, I_diff_R)", resize=(300 * 3, 300))
+
+    # Calculamos los histogramas
+    histogram_IdiffB, bin_edges = np.histogram(I_diff_B.ravel(), bins='auto')
+    #bin_count = np.bincount(I_diff_B.ravel())
+    #print(histogram_IdiffB, bin_count)
+    print(histogram_IdiffB)
+    print(bin_edges)
+    #display_histogram(I_diff_B)

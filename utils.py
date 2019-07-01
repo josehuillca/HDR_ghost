@@ -1,6 +1,13 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+
+from sys import platform as _platform
+if _platform == "darwin":
+   # MAC OS X
+   import matplotlib
+   matplotlib.use('MacOSX')
+
 from skimage import exposure
 from skimage.transform import pyramid_gaussian
 from typing import Tuple, List
@@ -57,3 +64,14 @@ def pyramid_g(img: np.ndarray, dowsample: int = 2, downscale: int = 2) -> List:
         # show the resized image
         gaussian_pyramid.append(resized)
     return gaussian_pyramid
+
+
+def display_histogram(img: np.ndarray) -> None:
+    """
+    :param img:
+    :param min_v:
+    :param max_v:
+    :return:
+    """
+    plt.hist(img.ravel(), bins='auto')
+    plt.show()
