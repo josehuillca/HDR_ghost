@@ -6,6 +6,42 @@ from utils import display_img, display_cumulative_histograms, pyramid_g, display
 from image_aligment import alignImages
 
 
+def threshold_color(h: np.ndarray, bins: np.ndarray) -> float:
+    """
+    :param h:       hitogram
+    :param bins:    bins
+    :return:        Threshold color
+    """
+    Tc_list = []
+    for i in range(0, len(bins)-2):
+        NpTc = h[i]
+        Np_Tc_ = h[i+1]
+        Tc_list.append(abs(NpTc - Np_Tc_))
+    Tc_list = np.array(Tc_list)
+    index_max = np.where(Tc_list == Tc_list.max())[0][0]
+    return (bins[index_max + 1] + bins[index_max])/2.
+
+
+def bin_map(img_b: np.ndarray, img_g: np.ndarray, img_r: np.ndarray, tc_b: float, tc_g: float, tc_r:float) -> np.ndarray:
+    """
+    :param img_b:   Image when min=0 and max=1, chanel Blue
+    :param img_g:   Image when min=0 and max=1, chanel Green
+    :param img_r:   Image when min=0 and max=1, chanel Red
+    :param tc_b:    Threshold color blue
+    :param tc_g:    Threshold color green
+    :param tc_r:    Threshold color red
+    :return:        binary Map
+    """
+    h, w = img_b.shape
+    binM = np.full(img_b.shape, 1, dtype=img_b.dtype)
+    for y in range(h):
+        for x in range(w):
+            if img_b[y,x] > tc_b or img_g[y,x] > tc_g or img_r[y,x] > tc_r:
+                binM[y,x] = 0
+    display_img(binM, "Bin Map - Normal")
+    return binM
+
+
 def execute(imgb_name: str, imgd_name: str) -> None:
     """
     :param imgb_name:
@@ -82,43 +118,23 @@ def execute(imgb_name: str, imgd_name: str) -> None:
     histogram_IdiffB, bin_edges_B = np.histogram(I_diff_B.ravel(), bins='auto')
     histogram_IdiffG, bin_edges_G = np.histogram(I_diff_G.ravel(), bins='auto')
     histogram_IdiffR, bin_edges_R = np.histogram(I_diff_R.ravel(), bins='auto')
-    print(I_diff_B)
-    print("Bin edges:", bin_edges_B[:20])
-    print(histogram_IdiffB.shape, histogram_IdiffG.shape, histogram_IdiffR.shape)
-    print(bin_edges_B.shape, bin_edges_G.shape, bin_edges_R.shape)
 
     Tc_B = threshold_color(histogram_IdiffB, bin_edges_B)
     Tc_G = threshold_color(histogram_IdiffG, bin_edges_G)
     Tc_R = threshold_color(histogram_IdiffR, bin_edges_R)
-    print(Tc_B, Tc_G, Tc_R, max(bin_edges_B))
-    #display_histogram(I_diff_B)
-    bin_map(I_diff_B, Tc_B)
-    bin_map(I_diff_G, Tc_G)
-    bin_map(I_diff_R, Tc_R)
+
+    M = bin_map(I_diff_B, I_diff_G, I_diff_R, Tc_B, Tc_G, Tc_R)
+
+    # These operations aim at removing possible detection noise (wrongly detected pixels)
+    # and enhance the shape and ﬁlling of motion objects in the ﬁnal motion map.
+    kernel = np.ones((3, 3), np.uint8)
+    M = cv2.erode(M, kernel, iterations=1)
+
+    M_ = cv2.dilate(M, kernel, iterations=1)
+
+    display_img(M_, title="M - erode_dilate")
+
+    # HDR De-ghosting --------------------------------
+    
 
 
-def threshold_color(h: np.ndarray, bins: np.ndarray) -> float:
-    """
-    :param h:       hitogram
-    :param bins:    bins
-    :return:        argmax of Tc_list
-    """
-    Tc_list = []
-    for i in range(0, len(bins)-2):
-        NpTc = h[i]
-        Np_Tc_ = h[i+1]
-        Tc_list.append(abs(NpTc - Np_Tc_))
-    Tc_list = np.array(Tc_list)
-    index_max = np.where(Tc_list == Tc_list.max())[0][0]
-    print(np.where(Tc_list == Tc_list.max()))
-    return (bins[index_max + 1] + bins[index_max])/2.
-
-
-def bin_map(img, tc):
-    h, w = img.shape
-    binM = np.full(img.shape, 1, dtype=img.dtype)
-    for y in range(h):
-        for x in range(w):
-            if img[y,x] > tc:
-                binM[y,x] = 0
-    display_img(binM, "Bin Map")
