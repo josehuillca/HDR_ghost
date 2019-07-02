@@ -79,9 +79,46 @@ def execute(imgb_name: str, imgd_name: str) -> None:
     display_img(numpy_bgr, title="logistic function: (I_diff_B, I_diff_G, I_diff_R)", resize=(300 * 3, 300))
 
     # Calculamos los histogramas
-    histogram_IdiffB, bin_edges = np.histogram(I_diff_B.ravel(), bins='auto')
-    #bin_count = np.bincount(I_diff_B.ravel())
-    #print(histogram_IdiffB, bin_count)
-    print(histogram_IdiffB)
-    print(bin_edges)
+    histogram_IdiffB, bin_edges_B = np.histogram(I_diff_B.ravel(), bins='auto')
+    histogram_IdiffG, bin_edges_G = np.histogram(I_diff_G.ravel(), bins='auto')
+    histogram_IdiffR, bin_edges_R = np.histogram(I_diff_R.ravel(), bins='auto')
+    print(I_diff_B)
+    print("Bin edges:", bin_edges_B[:20])
+    print(histogram_IdiffB.shape, histogram_IdiffG.shape, histogram_IdiffR.shape)
+    print(bin_edges_B.shape, bin_edges_G.shape, bin_edges_R.shape)
+
+    Tc_B = threshold_color(histogram_IdiffB, bin_edges_B)
+    Tc_G = threshold_color(histogram_IdiffG, bin_edges_G)
+    Tc_R = threshold_color(histogram_IdiffR, bin_edges_R)
+    print(Tc_B, Tc_G, Tc_R, max(bin_edges_B))
     #display_histogram(I_diff_B)
+    bin_map(I_diff_B, Tc_B)
+    bin_map(I_diff_G, Tc_G)
+    bin_map(I_diff_R, Tc_R)
+
+
+def threshold_color(h: np.ndarray, bins: np.ndarray) -> float:
+    """
+    :param h:       hitogram
+    :param bins:    bins
+    :return:        argmax of Tc_list
+    """
+    Tc_list = []
+    for i in range(0, len(bins)-2):
+        NpTc = h[i]
+        Np_Tc_ = h[i+1]
+        Tc_list.append(abs(NpTc - Np_Tc_))
+    Tc_list = np.array(Tc_list)
+    index_max = np.where(Tc_list == Tc_list.max())[0][0]
+    print(np.where(Tc_list == Tc_list.max()))
+    return (bins[index_max + 1] + bins[index_max])/2.
+
+
+def bin_map(img, tc):
+    h, w = img.shape
+    binM = np.full(img.shape, 1, dtype=img.dtype)
+    for y in range(h):
+        for x in range(w):
+            if img[y,x] > tc:
+                binM[y,x] = 0
+    display_img(binM, "Bin Map")
