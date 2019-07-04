@@ -4,6 +4,10 @@ import numpy as np
 from skimage.transform import match_histograms
 from utils import display_img, display_cumulative_histograms, pyramid_g, display_histogram
 from image_aligment import alignImages
+from exposure_fusion.image import Image, show
+from scipy import ndimage, misc
+from exposure_fusion.HDR_exposure_fusion import LaplacianMap
+from typing import Tuple, Any
 
 
 def threshold_color(h: np.ndarray, bins: np.ndarray) -> float:
@@ -42,14 +46,14 @@ def bin_map(img_b: np.ndarray, img_g: np.ndarray, img_r: np.ndarray, tc_b: float
     return binM
 
 
-def execute(imgb_name: str, imgd_name: str) -> None:
+def get_bin_maps(imgb_name: str, imgd_name: str) -> Tuple[Any, Any]:
     """
     :param imgb_name:
     :param imgd_name:
     :return:
     """
-    I_b = cv2.imread(imgb_name)     # bright Image
-    I_d = cv2.imread(imgd_name)     # dark Image
+    I_b = cv2.imread(imgb_name)  # bright Image
+    I_d = cv2.imread(imgd_name)  # dark Image
 
     # I_d is a source image, using Histogram Matching(HM)
     I_h = match_histograms(I_d, reference=I_b, multichannel=True)  # HM Image
@@ -107,9 +111,9 @@ def execute(imgb_name: str, imgd_name: str) -> None:
     print(I_diff.shape, I_diff_B.shape)
     for i in range(I_diff.shape[1]):
         for j in range(I_diff.shape[0]):
-            I_diff_B[j, i] = 1./(1. + k1*math.exp(-k2*(I_diff[j, i][0] - 0.5)))
-            I_diff_G[j, i] = 1./(1. + k1*math.exp(-k2*(I_diff[j, i][1] - 0.5)))
-            I_diff_R[j, i] = 1./(1. + k1*math.exp(-k2*(I_diff[j, i][2] - 0.5)))
+            I_diff_B[j, i] = 1. / (1. + k1 * math.exp(-k2 * (I_diff[j, i][0] - 0.5)))
+            I_diff_G[j, i] = 1. / (1. + k1 * math.exp(-k2 * (I_diff[j, i][1] - 0.5)))
+            I_diff_R[j, i] = 1. / (1. + k1 * math.exp(-k2 * (I_diff[j, i][2] - 0.5)))
 
     numpy_bgr = np.hstack((I_diff_B, I_diff_G, I_diff_R))
     display_img(numpy_bgr, title="logistic function: (I_diff_B, I_diff_G, I_diff_R)", resize=(300 * 3, 300))
@@ -134,7 +138,29 @@ def execute(imgb_name: str, imgd_name: str) -> None:
 
     display_img(M_, title="M - erode_dilate")
 
+    return [], M_
+
+
+def execute(imgb_name: str, imgd_name: str) -> None:
+    """
+    :param imgb_name:
+    :param imgd_name:
+    :return:
+    """
+    #_, _ = get_bin_maps(imgb_name, imgd_name)
+    #return None
+
     # HDR De-ghosting --------------------------------
+
+    shape = (1216,1536)
+    bin_maps = [np.full(shape, 1), np.full(shape, 1), np.full(shape, 1)]
+    names = [line.rstrip('\n') for line in open('list_images.txt')]
+    lap = LaplacianMap('cup', names, bin_maps, n=6)
+    res = lap.result_exposure(1, 1, 1)
+    show(res)
+    misc.imsave("res/arno_3.jpg", res)
+    return None
+
     
 
 

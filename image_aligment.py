@@ -46,7 +46,7 @@ def alignImages(source: np.ndarray, reference: np.ndarray, algorithm: str = 'ORB
     
     # Draw top matches
     imMatches = cv2.drawMatches(source, keypoints1, reference, keypoints2, matches, None)
-    display_img(imMatches, "Matches", (600*2, 600))
+    display_img(imMatches, "Matches", (300*2, 300))
     
     # Extract location of good matches
     points1 = np.zeros((len(matches), 2), dtype=np.float32)
