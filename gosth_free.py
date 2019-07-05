@@ -1,4 +1,5 @@
 import cv2
+import os
 import math
 import numpy as np
 from skimage.transform import match_histograms
@@ -147,23 +148,23 @@ def get_bin_maps(imgb_name: str, imgd_name: str) -> Tuple[Any, Any]:
     return bin_map_ref_img, M_
 
 
-def execute(imgb_name: str, imgd_name: str) -> None:
+def execute(fmt: str) -> Any:
     """
-    :param imgb_name:
-    :param imgd_name:
+    :param fmt: file mean type
     :return:
     """
-    bM_ref, bM = get_bin_maps(imgb_name, imgd_name)
+    names = [line.rstrip('\n') for line in open('list_images.txt')]
+
+    img_b = os.path.join("image_set", fmt, names[0])
+    img_d = os.path.join("image_set", fmt, names[-1])
+    bM_ref, bM = get_bin_maps(img_b, img_d)
 
     # HDR De-ghosting --------------------------------
-
-    names = [line.rstrip('\n') for line in open('list_images.txt')]
-    #lap = LaplacianMap('tren', names, [bM, bM_ref], n=6)
-    lap = LaplacianMap('tren', names, [bM, bM], n=6)
+    lap = LaplacianMap(fmt, names, [bM, bM], n=6)  # sin
+    #lap = LaplacianMap(fmt, names, [bM, bM_ref], n=6)
     res = lap.result_exposure(1, 1, 1)
-    show(res)
-    misc.imsave("res/arno_6.jpg", res)
-    return None
+    # show(res)
+    return res
 
     
 

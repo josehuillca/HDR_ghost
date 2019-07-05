@@ -1,13 +1,9 @@
 from gosth_free import execute
+from scipy import ndimage, misc
 
 
 if __name__ == "__main__":
-    imgb_name = "image_set/tren/image_bright.png"     # bright Image
-    imgd_name = "image_set/tren/image_dark.png"       # dark Image
-
-    #imgb_name = "images/cup_bright.png"  # bright Image
-    #imgd_name = "images/cup_dark.png"  # dark Image
-
-    execute(imgb_name, imgd_name)
-
+    fmt = 'DeepHDR'     # nombre de la carpeta que esta dentro de 'image_set' que tienen las images
+    res = execute(fmt)
+    misc.imsave("res/DeepHDR_sin.jpg", res)
     print("Finished...!")
