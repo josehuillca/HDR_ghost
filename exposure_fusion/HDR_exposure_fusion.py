@@ -1,18 +1,15 @@
+"""
+Created on Sat Dec 10 16:32:39 2016
+@author: Rachid & Chaima
+@Modified by: Jose Luis Huillca on Jul 2019
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import ndimage, misc
 from exposure_fusion.image import *
 from exposure_fusion.utils import *
 import pdb
-
-#
-#def div0( a, b ):
-#    """ ignore / 0, div0( [-1, 0, 1], 0 ) -> [0, 0, 0] """
-#    with np.errstate(divide='ignore', invalid='ignore'):
-#        c = np.true_divide( a, b )
-#        c[ ~ np.isfinite( c )] = 0
-#        return c
-
 
 class LaplacianMap(object):
     """Class for weights attribution with Laplacian Fusion"""
@@ -38,11 +35,9 @@ class LaplacianMap(object):
             exposedness = image_name.exposedness()
 
             # Usando Laplacian y pyramid gaussian se pierden unos pixeles
-            print(contrast.shape, (self.shape[0], self.shape[1]), np.array(self.bin_maps[i]).shape)
+            # print(contrast.shape, (self.shape[0], self.shape[1]), np.array(self.bin_maps[i]).shape)
             new_bin_map = misc.imresize(np.array(self.bin_maps[i]), (self.shape[0], self.shape[1]))
             w_add = 1e-12
-            if i == -1:
-                w_add = 0
             weight = (contrast ** w_c) * (saturation ** w_s) * (exposedness ** w_e) * new_bin_map + w_add
             self.weights.append(weight)
             sums = sums + weight
@@ -53,7 +48,7 @@ class LaplacianMap(object):
 
     def get_gaussian_pyramid(self, image, n):
         """Return the Gaussian Pyramid of an image"""
-        print("get_gaussian_pyramid")
+        print("get_gaussian_pyramid...")
         gaussian_pyramid_floors = [image]
         for floor in range(1, n):
             gaussian_pyramid_floors.append(
@@ -71,11 +66,11 @@ class LaplacianMap(object):
 
     def get_laplacian_pyramid(self, image, n):
         """Return the Laplacian Pyramid of an image"""
-        print("get_laplacian_pyramid")
+        print("get_laplacian_pyramid...")
         gaussian_pyramid_floors = self.get_gaussian_pyramid(image, n)
         laplacian_pyramid_floors = [gaussian_pyramid_floors[-1]]
         for floor in range(n - 2, -1, -1):
-            print(floor)
+            # print(floor)
             new_floor = gaussian_pyramid_floors[floor] - Expand(
                 gaussian_pyramid_floors[floor + 1], 1)
             laplacian_pyramid_floors = [new_floor] + laplacian_pyramid_floors
@@ -92,19 +87,16 @@ class LaplacianMap(object):
 
     def result_exposure(self, w_c=1, w_s=1, w_e=1):
         "Return the Exposure Fusion image with Laplacian/Gaussian Fusion method"
-        print("weights")
+        print("weights...")
         self.get_weights_map(w_c, w_s, w_e)
-        print("gaussian pyramid")
+        print("gaussian pyramid...")
         self.get_gaussian_pyramid_weights()
-        print("laplacian pyramid")
+        print("laplacian pyramid...")
         self.get_laplacian_pyramid_images()
         result_pyramid = []
-        print("PASOOOO---------")
         for floor in range(self.height_pyr):
-            print('floor ', floor)
             result_floor = np.zeros(self.laplacian_pyramid[0][floor].shape)
             for index in range(self.num_images):
-                print('floor ', floor)
                 for canal in range(3):
                     result_floor[:, :,
                                  canal] += self.laplacian_pyramid[index][floor][:, :,
@@ -113,7 +105,6 @@ class LaplacianMap(object):
         # Get the image from the Laplacian pyramid
         self.result_image = result_pyramid[-1]
         for floor in range(self.height_pyr - 2, -1, -1):
-            print('floor ', floor)
             self.result_image = result_pyramid[floor] + Expand(
                 self.result_image, 1)
         self.result_image[self.result_image < 0] = 0

@@ -47,10 +47,11 @@ def bin_map(img_b: np.ndarray, img_g: np.ndarray, img_r: np.ndarray, tc_b: float
     return binM
 
 
-def get_bin_maps(imgb_name: str, imgd_name: str) -> Tuple[Any, Any]:
+def get_bin_maps(imgb_name: str, imgd_name: str, display_steps: bool = False) -> Tuple[Any, Any]:
     """
-    :param imgb_name:
-    :param imgd_name:
+    :param imgb_name:       image bright path-name
+    :param imgd_name:       image dark path-name
+    :param display_steps:   display steps's algorithm
     :return:
     """
     I_b = cv2.imread(imgb_name)  # bright Image
@@ -63,15 +64,15 @@ def get_bin_maps(imgb_name: str, imgd_name: str) -> Tuple[Any, Any]:
     numpy_h = np.hstack((I_d, I_b, I_h))
     # numpy_h_concat = np.concatenate((I_d, I_b), axis=1)  # another form
     title_img = '(I_d, I_b, I_h) Images'
-    display_img(numpy_h, title_img, (300 * 3, 300))
+    display_img(numpy_h, title_img, (300 * 3, 300)) if display_steps else None
 
-    # Feature detection
+    # Feature detection and warp image
     I_w, _ = alignImages(I_b, reference=I_h, algorithm="ORB")  # motion registration
 
     # Display base images into same window
     numpy_h = np.hstack((I_d, I_b, I_h, I_w))
     title_img = '(I_d, I_b, I_h, I_w) Images'
-    display_img(numpy_h, title_img, (300 * 4, 300))
+    display_img(numpy_h, title_img, (300 * 4, 300)) if display_steps else None
 
     # WARNING: Use display_img() before of display_cumulative_histograms() generate a error  (ERROR LIBRARY libc++aby)
     # Display cumulative histograms of Histogram Matching(HM)
@@ -100,7 +101,7 @@ def get_bin_maps(imgb_name: str, imgd_name: str) -> Tuple[Any, Any]:
         size = (I_diff_exp[i].shape[1], I_diff_exp[i].shape[0])
         I_diff = cv2.pyrUp(I_diff, dstsize=size)
         I_diff = cv2.add(I_diff_exp[i], I_diff)
-    # display_img(I_diff, title="reconstrcted")
+    display_img(I_diff, title="reconstrcted") if display_steps else None
 
     # The goal of the next steps is to accurately distinguish between
     # the previously mentioned difference values. To this end, we
@@ -109,7 +110,6 @@ def get_bin_maps(imgb_name: str, imgd_name: str) -> Tuple[Any, Any]:
     I_diff_B = np.zeros((I_diff.shape[0], I_diff.shape[1]), dtype=I_diff.dtype)
     I_diff_G = np.zeros((I_diff.shape[0], I_diff.shape[1]), dtype=I_diff.dtype)
     I_diff_R = np.zeros((I_diff.shape[0], I_diff.shape[1]), dtype=I_diff.dtype)
-    print(I_diff.shape, I_diff_B.shape)
     for i in range(I_diff.shape[1]):
         for j in range(I_diff.shape[0]):
             I_diff_B[j, i] = 1. / (1. + k1 * math.exp(-k2 * (I_diff[j, i][0] - 0.5)))
@@ -117,9 +117,9 @@ def get_bin_maps(imgb_name: str, imgd_name: str) -> Tuple[Any, Any]:
             I_diff_R[j, i] = 1. / (1. + k1 * math.exp(-k2 * (I_diff[j, i][2] - 0.5)))
 
     numpy_bgr = np.hstack((I_diff_B, I_diff_G, I_diff_R))
-    display_img(numpy_bgr, title="logistic function: (I_diff_B, I_diff_G, I_diff_R)", resize=(300 * 3, 300))
+    display_img(numpy_bgr, title="logistic function: (B, G, R)", resize=(300 * 3, 300))  if display_steps else None
 
-    # Calculamos los histogramas
+    # We calculate the histograms
     histogram_IdiffB, bin_edges_B = np.histogram(I_diff_B.ravel(), bins='auto')
     histogram_IdiffG, bin_edges_G = np.histogram(I_diff_G.ravel(), bins='auto')
     histogram_IdiffR, bin_edges_R = np.histogram(I_diff_R.ravel(), bins='auto')
@@ -129,13 +129,12 @@ def get_bin_maps(imgb_name: str, imgd_name: str) -> Tuple[Any, Any]:
     Tc_R = threshold_color(histogram_IdiffR, bin_edges_R)
 
     M = bin_map(I_diff_B, I_diff_G, I_diff_R, Tc_B, Tc_G, Tc_R)
-    print("RAYOSSS:",M.dtype)
     # These operations aim at removing possible detection noise (wrongly detected pixels)
     # and enhance the shape and ﬁlling of motion objects in the ﬁnal motion map.
-    kernel = np.zeros((5, 5), np.uint8)     # normalmente es un kernel de unos
-    M_ = cv2.erode(M, kernel, iterations=1)
-    M_ = cv2.dilate(M, kernel, iterations=1)
-    print(M.shape, M.dtype)
+    kernel = np.zeros((5, 5), np.uint8)
+    # M_ = cv2.erode(M, kernel, iterations=1)   # dtype error: using scipy.misc
+    # M_ = cv2.dilate(M, kernel, iterations=1)  # dtype error: using scipy.misc
+    # Test without erode + dilate
 
     # the motion map corresponding to the designated reference image is composed of ones,
     # as we assume that all pixels in the reference image are valid.
@@ -143,27 +142,30 @@ def get_bin_maps(imgb_name: str, imgd_name: str) -> Tuple[Any, Any]:
     bin_map_ref_img = np.full(shape, 1)
 
     M_ = M
-    display_img(M_, title="M - erode_dilate")
-
+    display_img(M_, title="M - erode_dilate") if display_steps else None
     return bin_map_ref_img, M_
 
 
-def execute(fmt: str) -> Any:
-    """
-    :param fmt: file mean type
+def execute(fmt: str, display_steps: bool = False) -> Any:
+    """ Main function to execute the algorithm HDR De-ghosting
+    :param fmt: Name of the folder that contains the images to be processed
+    :param display_steps:   display steps's algorithm
     :return:
     """
     names = [line.rstrip('\n') for line in open('list_images.txt')]
 
     img_b = os.path.join("image_set", fmt, names[0])
     img_d = os.path.join("image_set", fmt, names[-1])
-    bM_ref, bM = get_bin_maps(img_b, img_d)
+    print("Get Bin Map...")
+    bM_ref, bM = get_bin_maps(img_b, img_d, display_steps)
+    # names = [image_bright.png, image_dark.png], the reference image is always the brigth images for these tests
 
     # HDR De-ghosting --------------------------------
-    lap = LaplacianMap(fmt, names, [bM, bM], n=6)  # sin
-    #lap = LaplacianMap(fmt, names, [bM, bM_ref], n=6)
+    print("Begin algorithm Exposure Fusion with Laplacian pyramid")
+    # lap = LaplacianMap(fmt, names, [bM, bM], n=6)     # with no De-gosthing
+    lap = LaplacianMap(fmt, names, [bM, bM_ref], n=6)   # with De-gosthing
     res = lap.result_exposure(1, 1, 1)
-    # show(res)
+    show(res)
     return res
 
     
