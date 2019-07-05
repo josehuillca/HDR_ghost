@@ -7,6 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy import ndimage, misc
 import pdb
+import cv2
 
 
 def weightedAverage(pixel):
@@ -39,6 +40,9 @@ class Image(object):
         self.path = os.path.join("image_set", fmt, str(path))
         self.fmt = fmt
         self.array = misc.imread(self.path, mode='RGB')
+        print("shape:", self.array.shape)
+        #self.array = cv2.imread(path)
+        #self.array = cv2.cvtColor(self.array, cv2.COLOR_BGRA2RGB)
         self.array = self.array.astype(np.float32) / 255
         if crop:
             self.crop_image(n)

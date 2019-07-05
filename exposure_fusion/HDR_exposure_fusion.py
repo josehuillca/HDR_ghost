@@ -27,21 +27,6 @@ class LaplacianMap(object):
         self.num_images = len(self.images)
         self.height_pyr = n
 
-    '''def get_weights_map(self, w_c, w_s, w_e):
-        """Return the normalized Weight map"""
-        self.weights = []
-        sums = np.zeros((self.shape[0], self.shape[1]))
-        for image_name in self.images:
-            contrast = image_name.contrast()
-            saturation = image_name.saturation()
-            exposedness = image_name.exposedness()
-            weight = (contrast**w_c) * (saturation**w_s) * (exposedness**w_e) + 1e-12
-            self.weights.append(weight)
-            sums = sums + weight
-        for index in range(self.num_images):
-            self.weights[index] = self.weights[index] / sums
-        return self.weights'''
-
     def get_weights_map(self, w_c: float, w_s: float, w_e: float):
         """Return the normalized Weight map"""
         self.weights = []
@@ -51,7 +36,14 @@ class LaplacianMap(object):
             contrast = image_name.contrast()
             saturation = image_name.saturation()
             exposedness = image_name.exposedness()
-            weight = (contrast ** w_c) * (saturation ** w_s) * (exposedness ** w_e) * self.bin_maps[i] + 1e-12
+
+            # Usando Laplacian y pyramid gaussian se pierden unos pixeles
+            print(contrast.shape, (self.shape[0], self.shape[1]), np.array(self.bin_maps[i]).shape)
+            new_bin_map = misc.imresize(np.array(self.bin_maps[i]), (self.shape[0], self.shape[1]))
+            w_add = 1e-12
+            if i == -1:
+                w_add = 0
+            weight = (contrast ** w_c) * (saturation ** w_s) * (exposedness ** w_e) * new_bin_map + w_add
             self.weights.append(weight)
             sums = sums + weight
             i = i + 1

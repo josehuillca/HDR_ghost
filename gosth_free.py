@@ -37,12 +37,12 @@ def bin_map(img_b: np.ndarray, img_g: np.ndarray, img_r: np.ndarray, tc_b: float
     :return:        binary Map
     """
     h, w = img_b.shape
-    binM = np.full(img_b.shape, 1, dtype=img_b.dtype)
+    binM = np.full(img_b.shape, 0, dtype=img_b.dtype)
     for y in range(h):
         for x in range(w):
             if img_b[y,x] > tc_b or img_g[y,x] > tc_g or img_r[y,x] > tc_r:
-                binM[y,x] = 0
-    display_img(binM, "Bin Map - Normal")
+                binM[y,x] = 1
+    # display_img(binM, "Bin Map - Normal")
     return binM
 
 
@@ -128,17 +128,23 @@ def get_bin_maps(imgb_name: str, imgd_name: str) -> Tuple[Any, Any]:
     Tc_R = threshold_color(histogram_IdiffR, bin_edges_R)
 
     M = bin_map(I_diff_B, I_diff_G, I_diff_R, Tc_B, Tc_G, Tc_R)
-
+    print("RAYOSSS:",M.dtype)
     # These operations aim at removing possible detection noise (wrongly detected pixels)
     # and enhance the shape and ﬁlling of motion objects in the ﬁnal motion map.
-    kernel = np.ones((3, 3), np.uint8)
-    M = cv2.erode(M, kernel, iterations=1)
-
+    kernel = np.zeros((5, 5), np.uint8)     # normalmente es un kernel de unos
+    M_ = cv2.erode(M, kernel, iterations=1)
     M_ = cv2.dilate(M, kernel, iterations=1)
+    print(M.shape, M.dtype)
 
+    # the motion map corresponding to the designated reference image is composed of ones,
+    # as we assume that all pixels in the reference image are valid.
+    shape = (I_b.shape[0], I_b.shape[1])
+    bin_map_ref_img = np.full(shape, 1)
+
+    M_ = M
     display_img(M_, title="M - erode_dilate")
 
-    return [], M_
+    return bin_map_ref_img, M_
 
 
 def execute(imgb_name: str, imgd_name: str) -> None:
@@ -147,18 +153,16 @@ def execute(imgb_name: str, imgd_name: str) -> None:
     :param imgd_name:
     :return:
     """
-    #_, _ = get_bin_maps(imgb_name, imgd_name)
-    #return None
+    bM_ref, bM = get_bin_maps(imgb_name, imgd_name)
 
     # HDR De-ghosting --------------------------------
 
-    shape = (1216,1536)
-    bin_maps = [np.full(shape, 1), np.full(shape, 1), np.full(shape, 1)]
     names = [line.rstrip('\n') for line in open('list_images.txt')]
-    lap = LaplacianMap('cup', names, bin_maps, n=6)
+    #lap = LaplacianMap('tren', names, [bM, bM_ref], n=6)
+    lap = LaplacianMap('tren', names, [bM, bM], n=6)
     res = lap.result_exposure(1, 1, 1)
     show(res)
-    misc.imsave("res/arno_3.jpg", res)
+    misc.imsave("res/arno_6.jpg", res)
     return None
 
     

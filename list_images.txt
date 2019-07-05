@@ -1,2 +1,2 @@
-cup_bright.png
-cup_dark.png
+image_bright.png
+image_dark.png
